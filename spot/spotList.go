@@ -28,3 +28,10 @@ func SpotmyTrade(jsonParams string) interface{} {
 	response := utils.PrivateGet(requestUrl, jsonParams)
 	return response
 }
+func CreateSub(jsonParams string) interface{} {
+	caseUrl := "/sub-account/virtualSubAccount"
+	requestUrl := config.BASE_URL + caseUrl
+	fmt.Println("requestUrl:", requestUrl)
+	response := utils.PrivatePost(requestUrl, jsonParams)
+	return response
+}
