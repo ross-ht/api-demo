@@ -1,13 +1,81 @@
 package utils
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
-	"strings"
-
 	"github.com/go-resty/resty/v2"
+	"github.com/ross-ht/api-demo/config"
+	"log"
+	"net/url"
+	"strings"
+	"time"
 )
+
+//公共get请求
+func PublicGet(urlStr string, jsonParams string) interface{} {
+	var path string
+	if jsonParams == "" {
+		path = urlStr
+	} else {
+		strParams := JsonToParamStr(jsonParams)
+		path = urlStr + "?" + strParams
+		fmt.Println("路径:", path)
+	}
+	//创建请求
+	client := resty.New()
+	//发送请求
+	resp, err := client.R().Get(path)
+
+	if err != nil {
+		log.Fatal("请求报错：", err)
+	}
+
+	// fmt.Println("Response Info:", resp)
+	return resp
+}
+
+//私有get请求
+func PrivateGet(urlStr string, jsonParams string) interface{} {
+	var path string
+	timestamp := time.Now().UnixNano() / 1e6
+	fmt.Println(timestamp)
+	if jsonParams == "" {
+		message := fmt.Sprintf("timestamp=%d", timestamp)
+		sign := ComputeHmac256(message, config.SEC_KEY)
+		path = fmt.Sprintf("%s?timestamp=%d&signature=%s", urlStr, timestamp, sign)
+		fmt.Println("message:", message)
+		fmt.Println("sign:", sign)
+		fmt.Println("path:", path)
+	} else {
+		strParams := JsonToParamStr(jsonParams)
+		message := fmt.Sprintf("%s&timestamp=%d", strParams, timestamp)
+		sign := ComputeHmac256(message, config.SEC_KEY)
+		path = fmt.Sprintf("%s?%s&timestamp=%d&signature=%s", urlStr, strParams, timestamp, sign)
+		fmt.Println("message:", ParamsEncode(message))
+		fmt.Println("sign:", sign)
+		fmt.Println("path:", path)
+	}
+	//创建请求
+	client := resty.New()
+	//发送请求
+	resp, err := client.R().SetHeaders(map[string]string{
+		"X-MEXC-APIKEY": config.API_KEY,
+		"Content-Type":  "application/json",
+	}).Get(path)
+
+	if err != nil {
+		log.Fatal("请求报错：", err)
+	}
+
+	// fmt.Println("Response Info:", resp)
+	return resp
+}
+
+//私有post请求
+//私有delete请求
 
 //格式化参数字符串
 func JsonToParamStr(jsonParams string) string {
@@ -32,28 +100,19 @@ func JsonToParamStr(jsonParams string) string {
 		}
 	}
 	paramsstr := strings.Join(paramsarr, "&")
+	fmt.Println("参数字符串：", paramsstr)
 	return paramsstr
 }
 
-//定义公共get请求
-func PublicGet(urlStr string, jsonParams string) interface{} {
-	var path string
-	if jsonParams == "" {
-		path = urlStr
-	} else {
-		strParams := JsonToParamStr(jsonParams)
-		path = urlStr + "?" + strParams
-		fmt.Println("path:", path)
-	}
-	//创建请求
-	client := resty.New()
-	//发送请求
-	resp, err := client.R().Get(path)
+//urlencode
+func ParamsEncode(paramStr string) string {
+	return url.QueryEscape(paramStr)
+}
 
-	if err != nil {
-		log.Fatal("请求报错：", err)
-	}
-
-	// fmt.Println("Response Info:", resp)
-	return resp
+//加密
+func ComputeHmac256(Message string, sec_key string) string {
+	key := []byte(sec_key)
+	h := hmac.New(sha256.New, key)
+	h.Write([]byte(Message))
+	return hex.EncodeToString(h.Sum(nil))
 }
