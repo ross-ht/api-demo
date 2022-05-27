@@ -2,15 +2,17 @@ package main
 
 import (
 	"flag"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/url"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
-var addr = flag.String("addr", "wbs.mexc.com", "http service address")
+var addr = "wbs.mexc.com"
+var payload = `{"op":"unsub.symbol","symbol":"MX_USDT"}`
 
 func main() {
 	flag.Parse()
@@ -19,12 +21,12 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	u := url.URL{Scheme: "wws", Host: *addr, Path: "/raw/ws"}
-	log.Printf("成功连接到%s:", u.String())
+	u := url.URL{Scheme: "wss", Host: addr, Path: "/raw/ws"}
+	log.Printf("connecting to %s", u.String())
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Fatal("连接失败:", err)
+		log.Fatal("dial:", err)
 	}
 	defer c.Close()
 
@@ -42,6 +44,16 @@ func main() {
 		}
 	}()
 
+	go func() {
+		msg := payload
+		err := c.WriteMessage(websocket.TextMessage, []byte(msg))
+		log.Println("发送:", msg)
+		if err != nil {
+			log.Println("write:", err)
+			return
+		}
+	}()
+
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
@@ -49,12 +61,6 @@ func main() {
 		select {
 		case <-done:
 			return
-		case t := <-ticker.C:
-			err := c.WriteMessage(websocket.TextMessage, []byte(t.String()))
-			if err != nil {
-				log.Println("write:", err)
-				return
-			}
 		case <-interrupt:
 			log.Println("interrupt")
 
