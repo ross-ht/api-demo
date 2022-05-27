@@ -12,7 +12,7 @@ import (
 )
 
 var addr = "wbs.mexc.com"
-var payload = `{"op":"unsub.symbol","symbol":"MX_USDT"}`
+var payload = `{"symbol":"MX_USDT","op":"sub.symbol"}`
 
 func main() {
 	flag.Parse()
@@ -31,7 +31,7 @@ func main() {
 	defer c.Close()
 
 	done := make(chan struct{})
-
+	//读
 	go func() {
 		defer close(done)
 		for {
@@ -43,11 +43,22 @@ func main() {
 			log.Printf("recv: %s", message)
 		}
 	}()
+	// //监听typein
+	// reader := bufio.NewReader(os.Stdin) //阅读器 读取输入的数据
+	// for {
+	// 	msga, _, _ := reader.ReadLine()
+	// 	err := c.WriteMessage(websocket.TextMessage, msga)
+	// 	log.Println("发送:", string(msga))
+	// 	if err != nil {
+	// 		log.Println("write:", err)
+	// 		return
+	// 	}
+	// }
 
+	//写
 	go func() {
-		msg := payload
-		err := c.WriteMessage(websocket.TextMessage, []byte(msg))
-		log.Println("发送:", msg)
+		err := c.WriteMessage(websocket.TextMessage, []byte(payload))
+		log.Println("发送:", payload)
 		if err != nil {
 			log.Println("write:", err)
 			return
