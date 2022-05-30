@@ -16,13 +16,13 @@
 ## V3 Spot API
 Description:
 * **Public API**
-    1. access to main.go，create a function you want to call in spotList.go. eg:
+    1.access to main.go，create a function you want to call in spotList.go. eg:
        > `depthinfo := spotList.SpotMarketDepth(params)`
-    2. input the params in json format if this request need any params,like：
+    2.input the params in json format if this request need any params,like：
        > `var params string = {"symbol":"BTCUSDT","limit":"200"}`  
-    3. if no params needed, just write 
+    3.if no params needed, just write 
        > `var params string =""`
-    4. run the request with code 
+    4.run the request with code 
        > `go run main.go`
 * **Private API**
     1. input the `api_key` and `sec_key` in config.go first
